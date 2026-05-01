@@ -21,7 +21,7 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/pong-release.keystore
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/pong-release.keystore
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
