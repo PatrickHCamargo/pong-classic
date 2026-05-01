@@ -3,164 +3,511 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Ping Pong</title>
+    <meta name="theme-color" content="#000000">
+    <title>Pong Classic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        /* ── Reset e base ─────────────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            background: #111;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100dvh;
+        :root {
+            /* Cores do tema atual — trocadas via JS ao mudar skin */
+            --bg:        #000000;
+            --p1:        #ffffff;
+            --p2:        #ffffff;
+            --ball:      #ffffff;
+            --accent:    #ffffff;
+            --text:      #ffffff;
+            --subtext:   #888888;
+            --glow:      rgba(255,255,255,0.4);
+            --btn-bg:    rgba(255,255,255,0.08);
+            --btn-border:rgba(255,255,255,0.2);
+        }
+
+        html, body {
+            width: 100%; height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Share Tech Mono', monospace;
             overflow: hidden;
-            font-family: 'Courier New', monospace;
             touch-action: none;
             user-select: none;
+            transition: background 0.5s;
         }
 
-        /* ── Placar ── */
-        #score {
-            color: #fff;
-            font-size: clamp(13px, 3vw, 18px);
-            margin-bottom: 8px;
-            letter-spacing: 2px;
-            opacity: 0.75;
-            text-align: center;
-        }
-        #score span { font-weight: bold; }
-        #p1score { color: #fff; }
-        #p2score { color: #f55; }
-
-        /* ── Área de jogo: botões + canvas + botões ── */
-        #game-area {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: clamp(6px, 2vw, 16px);
-        }
-
-        canvas {
-            border: 2px solid #333;
-            background: #000;
-            display: block;
-            flex-shrink: 0;
-        }
-
-        /* ── Painéis de botões ── */
-        .controls {
+        /* ── Telas ────────────────────────────────────────────────────────── */
+        .screen {
+            position: fixed;
+            inset: 0;
             display: flex;
             flex-direction: column;
-            gap: clamp(8px, 2vw, 14px);
-            align-items: center;
-        }
-
-        .ctrl-label {
-            font-size: clamp(9px, 1.8vw, 12px);
-            letter-spacing: 1px;
-            opacity: 0.45;
-            margin-bottom: 2px;
-        }
-        .p1-label { color: #fff; }
-        .p2-label { color: #f55; }
-
-        .btn {
-            width:  clamp(44px, 9vw, 64px);
-            height: clamp(44px, 9vw, 64px);
-            border-radius: 50%;
-            border: 2px solid;
-            background: transparent;
-            font-size: clamp(18px, 4vw, 26px);
-            cursor: pointer;
-            display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.1s, transform 0.08s;
-            -webkit-tap-highlight-color: transparent;
-            outline: none;
+            padding: 24px;
+            gap: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s;
         }
-        .btn:active { transform: scale(0.92); }
+        .screen.active {
+            opacity: 1;
+            pointer-events: all;
+        }
 
-        /* Jogador 1 — branco */
-        .p1 { border-color: #aaa; color: #fff; }
-        .p1.active, .p1:active { background: rgba(255,255,255,0.18); }
+        /* ── Tela de Menu ─────────────────────────────────────────────────── */
+        #screen-menu { gap: 28px; justify-content: center; }
 
-        /* Jogador 2 — vermelho */
-        .p2 { border-color: #c33; color: #f55; }
-        .p2.active, .p2:active { background: rgba(255,80,80,0.18); }
+        .game-title {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(36px, 12vw, 64px);
+            font-weight: 900;
+            letter-spacing: 6px;
+            color: var(--accent);
+            text-shadow: 0 0 30px var(--glow), 0 0 60px var(--glow);
+            text-align: center;
+            animation: pulse 3s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { text-shadow: 0 0 20px var(--glow); }
+            50%       { text-shadow: 0 0 40px var(--glow), 0 0 80px var(--glow); }
+        }
 
-        /* ── Modo seletor ── */
-        #mode-bar {
-            display: flex;
-            gap: 10px;
+        .subtitle {
+            font-size: 11px;
+            letter-spacing: 4px;
+            color: var(--subtext);
+            text-transform: uppercase;
+            margin-top: -20px;
+        }
+
+        /* ── Seções do menu ───────────────────────────────────────────────── */
+        .menu-section { width: 100%; max-width: 340px; }
+
+        .section-label {
+            font-size: 9px;
+            letter-spacing: 3px;
+            color: var(--subtext);
+            text-transform: uppercase;
             margin-bottom: 10px;
+            padding-left: 2px;
         }
-        .mode-btn {
-            padding: 5px 14px;
-            border-radius: 20px;
-            border: 1px solid #444;
-            background: transparent;
-            color: #888;
-            font-family: 'Courier New', monospace;
-            font-size: clamp(10px, 2.5vw, 13px);
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px 8px;
+            border-radius: 8px;
+            border: 1px solid var(--btn-border);
+            background: var(--btn-bg);
+            color: var(--text);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: clamp(10px, 3vw, 13px);
+            letter-spacing: 1px;
             cursor: pointer;
             transition: all 0.15s;
             -webkit-tap-highlight-color: transparent;
             outline: none;
+            text-align: center;
         }
-        .mode-btn.active {
-            border-color: #fff;
-            color: #fff;
-            background: rgba(255,255,255,0.08);
+        .btn.active, .btn:active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            box-shadow: 0 0 16px var(--glow);
         }
 
-        #hint {
-            color: #444;
-            font-size: clamp(9px, 2vw, 12px);
-            margin-top: 8px;
+        .btn-play {
+            width: 100%;
+            max-width: 340px;
+            padding: 18px;
+            border-radius: 12px;
+            border: 2px solid var(--accent);
+            background: transparent;
+            color: var(--accent);
+            font-family: 'Orbitron', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+            box-shadow: 0 0 20px var(--glow);
+        }
+        .btn-play:active {
+            background: var(--accent);
+            color: #000;
+            transform: scale(0.97);
+        }
+
+        /* ── Skins ────────────────────────────────────────────────────────── */
+        .skins-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 340px;
+        }
+
+        .skin-card {
+            aspect-ratio: 1;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        .skin-card.active { border-color: var(--accent); }
+        .skin-card:active { transform: scale(0.93); }
+
+        .skin-preview {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+        .skin-name {
+            font-size: 8px;
             letter-spacing: 1px;
             text-align: center;
+            color: var(--text);
+            opacity: 0.8;
+        }
+        .skin-lock {
+            position: absolute;
+            top: 4px; right: 4px;
+            font-size: 10px;
+            opacity: 0.7;
+        }
+        .skin-timer {
+            position: absolute;
+            bottom: 3px;
+            font-size: 7px;
+            color: #ffcc00;
+            letter-spacing: 0;
+        }
+
+        /* ── Tela de jogo ─────────────────────────────────────────────────── */
+        #screen-game {
+            padding: 0;
+            justify-content: space-between;
+            background: var(--bg);
+        }
+
+        /* Zona de toque J2 (topo) */
+        #zone-p2 {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Zona de toque J1 (baixo) */
+        #zone-p1 {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Canvas centralizado */
+        #canvas-wrap {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        /* HUD — placar e info */
+        .hud {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            pointer-events: none;
+        }
+
+        #hud-p2 {
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%) rotate(180deg);
+        }
+        #hud-p1 {
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .hud-score {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(32px, 10vw, 48px);
+            font-weight: 900;
+            color: var(--accent);
+            text-shadow: 0 0 20px var(--glow);
+            line-height: 1;
+        }
+        .hud-label {
+            font-size: 9px;
+            letter-spacing: 3px;
+            color: var(--subtext);
+        }
+
+        /* Indicador de toque */
+        .touch-hint {
+            position: absolute;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--subtext);
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        #hint-p2 { top: 50%; transform: translate(-50%, -50%) rotate(180deg); left: 50%; }
+        #hint-p1 { bottom: 50%; transform: translate(-50%, 50%); left: 50%; }
+
+        /* Botão de pausa / voltar */
+        #btn-pause {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--btn-border);
+            background: rgba(0,0,0,0.6);
+            color: var(--subtext);
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+
+        /* ── Tela de pausa ────────────────────────────────────────────────── */
+        #screen-pause {
+            background: rgba(0,0,0,0.85);
+            gap: 20px;
+            z-index: 20;
+        }
+        .pause-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 6px;
+        }
+
+        /* ── Tela de fim de jogo ──────────────────────────────────────────── */
+        #screen-gameover {
+            background: rgba(0,0,0,0.92);
+            gap: 20px;
+            z-index: 20;
+        }
+        .winner-text {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(18px, 6vw, 28px);
+            font-weight: 900;
+            color: var(--accent);
+            letter-spacing: 3px;
+            text-align: center;
+            text-shadow: 0 0 30px var(--glow);
+        }
+        .final-score {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(40px, 14vw, 72px);
+            font-weight: 900;
+            color: var(--text);
+            letter-spacing: 8px;
+        }
+
+        /* ── Modal de anúncio (simulado) ──────────────────────────────────── */
+        #screen-ad {
+            background: rgba(0,0,0,0.95);
+            gap: 24px;
+            z-index: 30;
+        }
+        .ad-box {
+            width: 100%;
+            max-width: 300px;
+            height: 200px;
+            border: 1px solid var(--btn-border);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(255,255,255,0.03);
+        }
+        .ad-icon { font-size: 48px; }
+        .ad-text { font-size: 12px; color: var(--subtext); letter-spacing: 2px; }
+        #ad-countdown {
+            font-family: 'Orbitron', monospace;
+            font-size: 32px;
+            color: var(--accent);
+        }
+        #btn-ad-skip {
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        #btn-ad-skip.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* ── Partículas de gol ────────────────────────────────────────────── */
+        #particles {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            animation: particle-anim 0.8s ease-out forwards;
+        }
+        @keyframes particle-anim {
+            0%   { opacity: 1; transform: scale(1) translate(0,0); }
+            100% { opacity: 0; transform: scale(0) translate(var(--tx), var(--ty)); }
         }
     </style>
 </head>
 <body>
 
-<!-- Seletor de modo -->
-<div id="mode-bar">
-    <button class="mode-btn active" id="btn-vs-cpu" onclick="setMode('cpu')">VS CPU</button>
-    <button class="mode-btn" id="btn-vs-p2"  onclick="setMode('2p')">2 JOGADORES</button>
-</div>
+<!-- ── Partículas ─────────────────────────────────────────────────────────── -->
+<div id="particles"></div>
 
-<!-- Placar -->
-<div id="score">
-    <span id="p1score">0</span>
-    <span style="opacity:0.4"> — </span>
-    <span id="p2score">0</span>
-</div>
+<!-- ══════════════════════════════════════════════════════════════════════════
+     TELA 1 — MENU
+══════════════════════════════════════════════════════════════════════════ -->
+<div class="screen active" id="screen-menu">
 
-<!-- Jogo -->
-<div id="game-area">
+    <div class="game-title">PONG</div>
+    <div class="subtitle">Classic</div>
 
-    <!-- Controles Jogador 1 (esquerda) -->
-    <div class="controls" id="ctrl-p1">
-        <span class="ctrl-label p1-label">J1</span>
-        <button class="btn p1" id="p1up"   >▲</button>
-        <button class="btn p1" id="p1down" >▼</button>
+    <!-- Modo de jogo -->
+    <div class="menu-section">
+        <div class="section-label">Modo de jogo</div>
+        <div class="btn-group">
+            <button class="btn active" id="btn-mode-cpu" onclick="selectMode('cpu')">VS CPU</button>
+            <button class="btn" id="btn-mode-2p" onclick="selectMode('2p')">2 JOGADORES</button>
+        </div>
     </div>
 
-    <canvas id="gameCanvas"></canvas>
+    <!-- Dificuldade -->
+    <div class="menu-section" id="section-difficulty">
+        <div class="section-label">Dificuldade</div>
+        <div class="btn-group">
+            <button class="btn active" id="btn-diff-easy"   onclick="selectDifficulty('easy')">FÁCIL</button>
+            <button class="btn"        id="btn-diff-medium" onclick="selectDifficulty('medium')">MÉDIO</button>
+            <button class="btn"        id="btn-diff-hard"   onclick="selectDifficulty('hard')">DIFÍCIL</button>
+        </div>
+    </div>
 
-    <!-- Controles Jogador 2 (direita) -->
-    <div class="controls" id="ctrl-p2">
-        <span class="ctrl-label p2-label">J2 / CPU</span>
-        <button class="btn p2" id="p2up"   >▲</button>
-        <button class="btn p2" id="p2down" >▼</button>
+    <!-- Skins -->
+    <div class="menu-section">
+        <div class="section-label">Skin</div>
+        <div class="skins-grid" id="skins-grid"></div>
+    </div>
+
+    <!-- Jogar -->
+    <button class="btn-play" onclick="startGame()">JOGAR</button>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     TELA 2 — JOGO
+══════════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-game">
+
+    <!-- Zona de toque J2 (topo — invertida) -->
+    <div id="zone-p2">
+        <div class="hud" id="hud-p2">
+            <div class="hud-score" id="score-p2">0</div>
+            <div class="hud-label" id="label-p2">CPU</div>
+        </div>
+        <span class="touch-hint" id="hint-p2">ARRASTE</span>
+    </div>
+
+    <!-- Canvas -->
+    <div id="canvas-wrap">
+        <canvas id="gameCanvas"></canvas>
+        <button id="btn-pause" onclick="togglePause()">II</button>
+    </div>
+
+    <!-- Zona de toque J1 (baixo) -->
+    <div id="zone-p1">
+        <div class="hud" id="hud-p1">
+            <div class="hud-score" id="score-p1">0</div>
+            <div class="hud-label">VOCÊ</div>
+        </div>
+        <span class="touch-hint" id="hint-p1">ARRASTE</span>
     </div>
 
 </div>
 
-<div id="hint"></div>
+<!-- ══════════════════════════════════════════════════════════════════════════
+     TELA 3 — PAUSA
+══════════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-pause">
+    <div class="pause-title">PAUSA</div>
+    <button class="btn-play" onclick="togglePause()" style="max-width:200px">CONTINUAR</button>
+    <button class="btn" onclick="goToMenu()" style="max-width:200px; margin-top:8px">MENU</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     TELA 4 — FIM DE JOGO
+══════════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-gameover">
+    <div class="winner-text" id="winner-text">JOGADOR 1 VENCEU!</div>
+    <div class="final-score" id="final-score">5 — 3</div>
+    <button class="btn-play" onclick="startGame()" style="max-width:220px">JOGAR NOVAMENTE</button>
+    <button class="btn" onclick="goToMenu()" style="max-width:220px; margin-top:8px">MENU</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     TELA 5 — ANÚNCIO (simulado)
+══════════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-ad">
+    <div class="section-label">Assistindo anúncio para desbloquear</div>
+    <div class="ad-box">
+        <div class="ad-icon">📺</div>
+        <div class="ad-text">ANÚNCIO</div>
+        <div id="ad-countdown">5</div>
+    </div>
+    <button class="btn" id="btn-ad-skip" onclick="finishAd()">PULAR E DESBLOQUEAR</button>
+    <button class="btn" onclick="cancelAd()" style="margin-top:4px; opacity:0.5">CANCELAR</button>
+</div>
 
 <script src="pong.js"></script>
 </body>
