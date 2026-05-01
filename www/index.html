@@ -92,10 +92,8 @@
             box-shadow: 0 0 16px var(--glow);
         }
 
-        /* Botão de ação principal */
         .btn-action {
             width: 100%; max-width: 320px;
-            padding: 16px 24px;
             border-radius: 12px;
             border: 2px solid var(--accent);
             background: transparent;
@@ -107,17 +105,14 @@
             -webkit-tap-highlight-color: transparent;
             outline: none;
             box-shadow: 0 0 16px var(--glow);
-            /* Garante altura fixa e não estica */
             height: 56px;
             display: flex; align-items: center; justify-content: center;
             white-space: nowrap;
         }
         .btn-action:active { background: var(--accent); color: #000; transform: scale(0.97); }
 
-        /* Botão secundário — menu, cancelar etc */
         .btn-secondary {
             width: 100%; max-width: 320px;
-            padding: 13px 24px;
             border-radius: 10px;
             border: 1px solid var(--btn-border);
             background: var(--btn-bg);
@@ -127,7 +122,6 @@
             cursor: pointer; transition: all 0.15s;
             -webkit-tap-highlight-color: transparent;
             outline: none;
-            /* Altura fixa — sem esticar */
             height: 48px;
             display: flex; align-items: center; justify-content: center;
             white-space: nowrap;
@@ -168,54 +162,65 @@
             font-size: 7px; color: #ffcc00;
         }
 
-        /* ── Tela de jogo ── */
+        /* ══════════════════════════════════════════════════════
+           TELA DE JOGO — Canvas FULLSCREEN com zonas SOBREPOSTAS
+        ══════════════════════════════════════════════════════ */
+
         #screen-game {
             padding: 0; gap: 0;
-            justify-content: flex-start;
+            background: var(--bg);
+        }
+
+        /* Canvas ocupa quase toda a tela */
+        #canvas-wrap {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none; /* deixa o toque passar */
+        }
+
+        canvas {
+            display: block;
             background: var(--bg);
         }
 
         /*
-         * ZONAS DE TOQUE — ocupam metade da tela cada
-         * A zona do J2 fica no topo (invertida)
-         * A zona do J1 fica embaixo
-         * O canvas fica sobreposto no meio via position:absolute
+         * ZONAS DE TOQUE — sobrepostas ao canvas
+         * Cada zona ocupa metade da TELA (não do canvas)
+         * Ficam acima do canvas no z-index
          */
         #zone-p2 {
             position: fixed;
-            top: 0; left: 0; right: 0;
-            bottom: 50%; /* metade superior */
-            z-index: 1;
-            display: flex; align-items: flex-start; justify-content: center;
-            padding-top: 16px;
+            top: 0; left: 0; right: 0; height: 50%;
+            z-index: 5;
         }
 
         #zone-p1 {
             position: fixed;
-            top: 50%; left: 0; right: 0;
-            bottom: 0; /* metade inferior */
-            z-index: 1;
-            display: flex; align-items: flex-end; justify-content: center;
-            padding-bottom: 16px;
+            bottom: 0; left: 0; right: 0; height: 50%;
+            z-index: 5;
         }
 
-        /* Canvas centralizado sobre as zonas */
-        #canvas-wrap {
+        /* HUD do placar — fica entre a borda e a raquete */
+        #hud-p2 {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 2;
-            pointer-events: none; /* deixa o toque passar para as zonas */
-        }
-
-        canvas { display: block; }
-
-        /* HUD placar */
-        .hud {
+            top: 2.5%; left: 50%;
+            transform: translateX(-50%) rotate(180deg);
+            z-index: 6;
+            pointer-events: none;
             display: flex; flex-direction: column;
             align-items: center; gap: 2px;
+        }
+        #hud-p1 {
+            position: fixed;
+            bottom: 2.5%; left: 50%;
+            transform: translateX(-50%);
+            z-index: 6;
             pointer-events: none;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 2px;
         }
 
         .hud-score {
@@ -226,19 +231,24 @@
         }
         .hud-label { font-size: 8px; letter-spacing: 3px; color: var(--subtext); }
 
-        /* J2 fica invertido */
-        #hud-p2 { transform: rotate(180deg); }
-
-        /* Hint de toque */
+        /* Hints */
         .touch-hint {
-            font-size: 9px; letter-spacing: 2px;
+            position: fixed;
+            left: 50%;
+            font-size: 10px; letter-spacing: 3px;
             color: var(--subtext); opacity: 0;
             pointer-events: none;
             transition: opacity 0.5s;
+            z-index: 7;
         }
-        #hint-p2 { transform: rotate(180deg); }
+        #hint-p2 {
+            top: 25%; transform: translateX(-50%) rotate(180deg);
+        }
+        #hint-p1 {
+            bottom: 25%; transform: translateX(-50%);
+        }
 
-        /* Botão de pausa — fixo no centro da tela, sobre o canvas */
+        /* Botão de pausa — fixo no centro da tela */
         #btn-pause {
             position: fixed;
             top: 50%; left: 50%;
@@ -321,7 +331,6 @@
             cursor: pointer; outline: none;
             -webkit-tap-highlight-color: transparent;
             display: flex; align-items: center; justify-content: center;
-            /* Bloqueado até o timer acabar */
             opacity: 0;
             pointer-events: none;
             transform: translateY(8px);
@@ -334,7 +343,7 @@
         }
 
         /* ── Partículas ── */
-        #particles { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+        #particles { position: fixed; inset: 0; pointer-events: none; z-index: 8; }
         .particle {
             position: absolute; border-radius: 50%;
             animation: part 0.7s ease-out forwards;
@@ -381,31 +390,31 @@
 
 <!-- JOGO -->
 <div class="screen" id="screen-game">
-    <!-- Zona J2 topo — metade superior da tela -->
-    <div id="zone-p2">
-        <div class="hud" id="hud-p2">
-            <div class="hud-score" id="score-p2">0</div>
-            <div class="hud-label" id="label-p2">CPU</div>
-        </div>
-        <span class="touch-hint" id="hint-p2">ARRASTE</span>
-    </div>
-
-    <!-- Canvas centralizado -->
+    <!-- Canvas fullscreen -->
     <div id="canvas-wrap">
         <canvas id="gameCanvas"></canvas>
     </div>
 
-    <!-- Botão pausa fixo no centro -->
-    <button id="btn-pause" onclick="togglePause()">II</button>
+    <!-- Zonas de toque sobrepostas -->
+    <div id="zone-p2"></div>
+    <div id="zone-p1"></div>
 
-    <!-- Zona J1 baixo — metade inferior da tela -->
-    <div id="zone-p1">
-        <span class="touch-hint" id="hint-p1">ARRASTE</span>
-        <div class="hud" id="hud-p1">
-            <div class="hud-score" id="score-p1">0</div>
-            <div class="hud-label">VOCE</div>
-        </div>
+    <!-- HUDs do placar -->
+    <div id="hud-p2">
+        <div class="hud-score" id="score-p2">0</div>
+        <div class="hud-label" id="label-p2">CPU</div>
     </div>
+    <div id="hud-p1">
+        <div class="hud-score" id="score-p1">0</div>
+        <div class="hud-label">VOCE</div>
+    </div>
+
+    <!-- Hints -->
+    <span class="touch-hint" id="hint-p2">ARRASTE</span>
+    <span class="touch-hint" id="hint-p1">ARRASTE</span>
+
+    <!-- Botão pausa -->
+    <button id="btn-pause" onclick="togglePause()">II</button>
 </div>
 
 <!-- PAUSA -->
