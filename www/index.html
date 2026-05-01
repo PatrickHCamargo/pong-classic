@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="screen-orientation" content="portrait">
     <meta name="theme-color" content="#000000">
     <title>Pong Classic</title>
     <style>
-        /* ── Fonte embutida estilo Orbitron (sem internet) ── */
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,25 +31,12 @@
             transition: background 0.4s;
         }
 
-        /* Força retrato */
-        @media (orientation: landscape) {
-            body::before {
-                content: 'Gire o celular para o modo retrato';
-                position: fixed; inset: 0; z-index: 9999;
-                background: #000; color: #fff;
-                display: flex; align-items: center; justify-content: center;
-                font-size: 18px; letter-spacing: 2px; text-align: center;
-                padding: 40px;
-            }
-            .screen { display: none !important; }
-        }
-
         /* ── Telas ── */
         .screen {
             position: fixed; inset: 0;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            padding: 20px; gap: 20px;
+            padding: 20px; gap: 18px;
             opacity: 0; pointer-events: none;
             transition: opacity 0.3s;
         }
@@ -61,8 +46,7 @@
         .game-title {
             font-family: 'Orbitron', 'Courier New', monospace;
             font-size: clamp(42px, 14vw, 72px);
-            font-weight: 900;
-            letter-spacing: 8px;
+            font-weight: 900; letter-spacing: 8px;
             color: var(--accent);
             text-shadow: 0 0 30px var(--glow);
             text-align: center;
@@ -76,7 +60,7 @@
         .subtitle {
             font-size: 11px; letter-spacing: 4px;
             color: var(--subtext); text-transform: uppercase;
-            margin-top: -16px;
+            margin-top: -14px;
         }
 
         .menu-section { width: 100%; max-width: 320px; }
@@ -84,7 +68,7 @@
         .section-label {
             font-size: 9px; letter-spacing: 3px;
             color: var(--subtext); text-transform: uppercase;
-            margin-bottom: 8px; padding-left: 2px;
+            margin-bottom: 8px;
         }
 
         .btn-group { display: flex; gap: 8px; width: 100%; }
@@ -98,35 +82,57 @@
             font-family: 'Share Tech Mono', monospace;
             font-size: clamp(10px, 3vw, 12px);
             letter-spacing: 1px;
-            cursor: pointer;
-            transition: all 0.15s;
+            cursor: pointer; transition: all 0.15s;
             -webkit-tap-highlight-color: transparent;
             outline: none; text-align: center;
         }
         .btn.active {
-            background: var(--accent);
-            color: #000;
+            background: var(--accent); color: #000;
             border-color: var(--accent);
             box-shadow: 0 0 16px var(--glow);
         }
 
-        .btn-play {
+        /* Botão de ação principal */
+        .btn-action {
             width: 100%; max-width: 320px;
-            padding: 16px;
+            padding: 16px 24px;
             border-radius: 12px;
             border: 2px solid var(--accent);
             background: transparent;
             color: var(--accent);
             font-family: 'Orbitron', monospace;
-            font-size: 16px; font-weight: 700;
-            letter-spacing: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
+            font-size: 15px; font-weight: 700;
+            letter-spacing: 3px;
+            cursor: pointer; transition: all 0.2s;
             -webkit-tap-highlight-color: transparent;
             outline: none;
             box-shadow: 0 0 16px var(--glow);
+            /* Garante altura fixa e não estica */
+            height: 56px;
+            display: flex; align-items: center; justify-content: center;
+            white-space: nowrap;
         }
-        .btn-play:active { background: var(--accent); color: #000; transform: scale(0.97); }
+        .btn-action:active { background: var(--accent); color: #000; transform: scale(0.97); }
+
+        /* Botão secundário — menu, cancelar etc */
+        .btn-secondary {
+            width: 100%; max-width: 320px;
+            padding: 13px 24px;
+            border-radius: 10px;
+            border: 1px solid var(--btn-border);
+            background: var(--btn-bg);
+            color: var(--subtext);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px; letter-spacing: 2px;
+            cursor: pointer; transition: all 0.15s;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+            /* Altura fixa — sem esticar */
+            height: 48px;
+            display: flex; align-items: center; justify-content: center;
+            white-space: nowrap;
+        }
+        .btn-secondary:active { background: var(--btn-border); color: var(--text); }
 
         /* ── Skins ── */
         .skins-grid {
@@ -147,9 +153,8 @@
         }
         .skin-card.active { border-color: var(--accent) !important; }
 
-        .skin-preview {
-            width: 28px; height: 28px; border-radius: 50%;
-        }
+        .skin-preview { width: 28px; height: 28px; border-radius: 50%; }
+
         .skin-name {
             font-size: 7px; letter-spacing: 0.5px;
             text-align: center; color: var(--text); opacity: 0.8;
@@ -157,7 +162,6 @@
         .skin-lock {
             position: absolute; top: 3px; right: 4px;
             font-size: 8px; color: var(--subtext);
-            letter-spacing: 0;
         }
         .skin-timer {
             position: absolute; bottom: 2px;
@@ -171,44 +175,47 @@
             background: var(--bg);
         }
 
-        /* Zona de toque J2 — topo (invertida) */
+        /*
+         * ZONAS DE TOQUE — ocupam metade da tela cada
+         * A zona do J2 fica no topo (invertida)
+         * A zona do J1 fica embaixo
+         * O canvas fica sobreposto no meio via position:absolute
+         */
         #zone-p2 {
-            flex: 1; width: 100%;
-            display: flex; align-items: center; justify-content: center;
-            position: relative;
-            /* Identificador visual sutil */
-            border-bottom: 1px solid transparent;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            bottom: 50%; /* metade superior */
+            z-index: 1;
+            display: flex; align-items: flex-start; justify-content: center;
+            padding-top: 16px;
         }
 
-        /* Zona de toque J1 — baixo */
         #zone-p1 {
-            flex: 1; width: 100%;
-            display: flex; align-items: center; justify-content: center;
-            position: relative;
+            position: fixed;
+            top: 50%; left: 0; right: 0;
+            bottom: 0; /* metade inferior */
+            z-index: 1;
+            display: flex; align-items: flex-end; justify-content: center;
+            padding-bottom: 16px;
         }
 
+        /* Canvas centralizado sobre as zonas */
         #canvas-wrap {
-            width: 100%; display: flex;
-            justify-content: center;
-            position: relative; flex-shrink: 0;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            pointer-events: none; /* deixa o toque passar para as zonas */
         }
 
-        canvas { display: block; width: 100%; }
+        canvas { display: block; }
 
         /* HUD placar */
         .hud {
-            position: absolute;
             display: flex; flex-direction: column;
             align-items: center; gap: 2px;
             pointer-events: none;
-        }
-        #hud-p2 {
-            top: 12px; left: 50%;
-            transform: translateX(-50%) rotate(180deg);
-        }
-        #hud-p1 {
-            bottom: 12px; left: 50%;
-            transform: translateX(-50%);
         }
 
         .hud-score {
@@ -217,33 +224,32 @@
             font-weight: 900; color: var(--accent);
             text-shadow: 0 0 16px var(--glow); line-height: 1;
         }
-        .hud-label {
-            font-size: 8px; letter-spacing: 3px; color: var(--subtext);
-        }
+        .hud-label { font-size: 8px; letter-spacing: 3px; color: var(--subtext); }
+
+        /* J2 fica invertido */
+        #hud-p2 { transform: rotate(180deg); }
 
         /* Hint de toque */
         .touch-hint {
-            position: absolute; left: 50%; top: 50%;
-            transform: translate(-50%, -50%);
             font-size: 9px; letter-spacing: 2px;
             color: var(--subtext); opacity: 0;
             pointer-events: none;
             transition: opacity 0.5s;
         }
-        #hint-p2 { transform: translate(-50%, -50%) rotate(180deg); }
+        #hint-p2 { transform: rotate(180deg); }
 
-        /* Botão de pausa — centralizado entre as zonas */
+        /* Botão de pausa — fixo no centro da tela, sobre o canvas */
         #btn-pause {
-            position: absolute;
+            position: fixed;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             z-index: 10;
-            width: 40px; height: 40px;
+            width: 44px; height: 44px;
             border-radius: 50%;
-            border: 1px solid rgba(255,255,255,0.15);
-            background: rgba(0,0,0,0.5);
-            color: rgba(255,255,255,0.4);
-            font-size: 13px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.6);
+            color: rgba(255,255,255,0.5);
+            font-size: 14px;
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             -webkit-tap-highlight-color: transparent;
@@ -251,7 +257,7 @@
             pointer-events: all;
         }
 
-        /* ── Tela de pausa ── */
+        /* ── Pausa ── */
         #screen-pause {
             background: rgba(0,0,0,0.88);
             gap: 16px; z-index: 20;
@@ -285,7 +291,6 @@
         #screen-ad {
             background: rgba(0,0,0,0.96);
             gap: 20px; z-index: 30;
-            justify-content: center;
         }
         .ad-box {
             width: 100%; max-width: 280px; height: 180px;
@@ -304,10 +309,9 @@
             color: var(--accent);
         }
 
-        /* Botão skip — só aparece quando timer zera */
         #btn-ad-skip {
             width: 100%; max-width: 280px;
-            padding: 14px;
+            height: 52px;
             border-radius: 10px;
             border: 2px solid var(--accent);
             background: var(--accent);
@@ -316,29 +320,17 @@
             font-size: 13px; letter-spacing: 2px;
             cursor: pointer; outline: none;
             -webkit-tap-highlight-color: transparent;
-            /* Começa invisível e desabilitado */
+            display: flex; align-items: center; justify-content: center;
+            /* Bloqueado até o timer acabar */
             opacity: 0;
             pointer-events: none;
-            transform: translateY(10px);
+            transform: translateY(8px);
             transition: opacity 0.4s, transform 0.4s;
         }
         #btn-ad-skip.visible {
             opacity: 1;
             pointer-events: all;
             transform: translateY(0);
-        }
-
-        #btn-ad-cancel {
-            background: transparent;
-            border: 1px solid var(--btn-border);
-            color: var(--subtext);
-            width: 100%; max-width: 280px;
-            padding: 12px;
-            border-radius: 10px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 11px; letter-spacing: 2px;
-            cursor: pointer; outline: none;
-            -webkit-tap-highlight-color: transparent;
         }
 
         /* ── Partículas ── */
@@ -384,12 +376,12 @@
         <div class="skins-grid" id="skins-grid"></div>
     </div>
 
-    <button class="btn-play" onclick="startGame()">JOGAR</button>
+    <button class="btn-action" onclick="startGame()">JOGAR</button>
 </div>
 
 <!-- JOGO -->
 <div class="screen" id="screen-game">
-    <!-- Zona J2 topo -->
+    <!-- Zona J2 topo — metade superior da tela -->
     <div id="zone-p2">
         <div class="hud" id="hud-p2">
             <div class="hud-score" id="score-p2">0</div>
@@ -398,35 +390,37 @@
         <span class="touch-hint" id="hint-p2">ARRASTE</span>
     </div>
 
-    <!-- Canvas + botão pausa -->
+    <!-- Canvas centralizado -->
     <div id="canvas-wrap">
         <canvas id="gameCanvas"></canvas>
-        <button id="btn-pause" onclick="togglePause()">II</button>
     </div>
 
-    <!-- Zona J1 baixo -->
+    <!-- Botão pausa fixo no centro -->
+    <button id="btn-pause" onclick="togglePause()">II</button>
+
+    <!-- Zona J1 baixo — metade inferior da tela -->
     <div id="zone-p1">
+        <span class="touch-hint" id="hint-p1">ARRASTE</span>
         <div class="hud" id="hud-p1">
             <div class="hud-score" id="score-p1">0</div>
             <div class="hud-label">VOCE</div>
         </div>
-        <span class="touch-hint" id="hint-p1">ARRASTE</span>
     </div>
 </div>
 
 <!-- PAUSA -->
 <div class="screen" id="screen-pause">
     <div class="pause-title">PAUSA</div>
-    <button class="btn-play" onclick="togglePause()" style="max-width:200px">CONTINUAR</button>
-    <button class="btn" onclick="goToMenu()" style="max-width:200px;margin-top:8px">MENU</button>
+    <button class="btn-action" onclick="togglePause()">CONTINUAR</button>
+    <button class="btn-secondary" onclick="goToMenu()">MENU</button>
 </div>
 
 <!-- FIM DE JOGO -->
 <div class="screen" id="screen-gameover">
     <div class="winner-text" id="winner-text">VOCE VENCEU!</div>
     <div class="final-score" id="final-score">5 - 3</div>
-    <button class="btn-play" onclick="startGame()" style="max-width:220px">JOGAR NOVAMENTE</button>
-    <button class="btn" onclick="goToMenu()" style="max-width:220px;margin-top:8px">MENU</button>
+    <button class="btn-action" onclick="startGame()">JOGAR NOVAMENTE</button>
+    <button class="btn-secondary" onclick="goToMenu()">MENU</button>
 </div>
 
 <!-- ANUNCIO -->
@@ -438,7 +432,7 @@
         <div id="ad-countdown">5</div>
     </div>
     <button id="btn-ad-skip" onclick="finishAd()">PULAR E DESBLOQUEAR</button>
-    <button id="btn-ad-cancel" onclick="cancelAd()">CANCELAR</button>
+    <button class="btn-secondary" onclick="cancelAd()">CANCELAR</button>
 </div>
 
 <script src="pong.js"></script>
