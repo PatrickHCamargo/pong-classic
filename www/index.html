@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ping Pong</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #111;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100dvh;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            touch-action: none;
+            user-select: none;
+        }
+
+        /* ── Placar ── */
+        #score {
+            color: #fff;
+            font-size: clamp(13px, 3vw, 18px);
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+            opacity: 0.75;
+            text-align: center;
+        }
+        #score span { font-weight: bold; }
+        #p1score { color: #fff; }
+        #p2score { color: #f55; }
+
+        /* ── Área de jogo: botões + canvas + botões ── */
+        #game-area {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: clamp(6px, 2vw, 16px);
+        }
+
+        canvas {
+            border: 2px solid #333;
+            background: #000;
+            display: block;
+            flex-shrink: 0;
+        }
+
+        /* ── Painéis de botões ── */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(8px, 2vw, 14px);
+            align-items: center;
+        }
+
+        .ctrl-label {
+            font-size: clamp(9px, 1.8vw, 12px);
+            letter-spacing: 1px;
+            opacity: 0.45;
+            margin-bottom: 2px;
+        }
+        .p1-label { color: #fff; }
+        .p2-label { color: #f55; }
+
+        .btn {
+            width:  clamp(44px, 9vw, 64px);
+            height: clamp(44px, 9vw, 64px);
+            border-radius: 50%;
+            border: 2px solid;
+            background: transparent;
+            font-size: clamp(18px, 4vw, 26px);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.1s, transform 0.08s;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+        .btn:active { transform: scale(0.92); }
+
+        /* Jogador 1 — branco */
+        .p1 { border-color: #aaa; color: #fff; }
+        .p1.active, .p1:active { background: rgba(255,255,255,0.18); }
+
+        /* Jogador 2 — vermelho */
+        .p2 { border-color: #c33; color: #f55; }
+        .p2.active, .p2:active { background: rgba(255,80,80,0.18); }
+
+        /* ── Modo seletor ── */
+        #mode-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .mode-btn {
+            padding: 5px 14px;
+            border-radius: 20px;
+            border: 1px solid #444;
+            background: transparent;
+            color: #888;
+            font-family: 'Courier New', monospace;
+            font-size: clamp(10px, 2.5vw, 13px);
+            cursor: pointer;
+            transition: all 0.15s;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+        .mode-btn.active {
+            border-color: #fff;
+            color: #fff;
+            background: rgba(255,255,255,0.08);
+        }
+
+        #hint {
+            color: #444;
+            font-size: clamp(9px, 2vw, 12px);
+            margin-top: 8px;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Seletor de modo -->
+<div id="mode-bar">
+    <button class="mode-btn active" id="btn-vs-cpu" onclick="setMode('cpu')">VS CPU</button>
+    <button class="mode-btn" id="btn-vs-p2"  onclick="setMode('2p')">2 JOGADORES</button>
+</div>
+
+<!-- Placar -->
+<div id="score">
+    <span id="p1score">0</span>
+    <span style="opacity:0.4"> — </span>
+    <span id="p2score">0</span>
+</div>
+
+<!-- Jogo -->
+<div id="game-area">
+
+    <!-- Controles Jogador 1 (esquerda) -->
+    <div class="controls" id="ctrl-p1">
+        <span class="ctrl-label p1-label">J1</span>
+        <button class="btn p1" id="p1up"   >▲</button>
+        <button class="btn p1" id="p1down" >▼</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Controles Jogador 2 (direita) -->
+    <div class="controls" id="ctrl-p2">
+        <span class="ctrl-label p2-label">J2 / CPU</span>
+        <button class="btn p2" id="p2up"   >▲</button>
+        <button class="btn p2" id="p2down" >▼</button>
+    </div>
+
+</div>
+
+<div id="hint"></div>
+
+<script src="pong.js"></script>
+</body>
+</html>

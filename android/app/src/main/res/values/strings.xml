@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pong Classic</string>
+    <string name="title_activity_main">Pong Classic</string>
+    <string name="package_name">com.patrick.pong</string>
+    <string name="custom_url_scheme">com.patrick.pong</string>
+</resources>
