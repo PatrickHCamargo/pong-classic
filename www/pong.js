@@ -1,12 +1,10 @@
 // ============================================================
-// PONG CLASSIC — pong.js v3
+// PONG CLASSIC — pong.js v4
 //
-// Correções:
-//   1. Zonas de toque = metade da tela inteira cada
-//   2. Bloqueio real das skins premium (sem bypass)
-//   3. Botões com tamanho correto (via CSS classe nova)
-//   4. Canvas centralizado com pointer-events desligado
-//      para não bloquear o toque nas zonas
+// Mudanças principais:
+//   - Canvas ocupa a tela INTEIRA agora
+//   - Zonas de toque ficam SOBREPOSTAS no canvas
+//   - Bola e raquetes usam toda a área
 // ============================================================
 
 
@@ -58,7 +56,7 @@ var SKINS = {
     galaxy: {
         name:'GALAXY', free:false, preview:'#4488ff', stars:null,
         vars:{'--bg':'#00000a','--accent':'#4488ff','--text':'#88aaff','--subtext':'#223355','--glow':'rgba(68,136,255,0.5)','--btn-bg':'rgba(68,136,255,0.06)','--btn-border':'rgba(68,136,255,0.2)'},
-        drawBg:function(ctx,w,h){ctx.fillStyle='#00000a';ctx.fillRect(0,0,w,h);if(!this.stars){this.stars=[];for(var i=0;i<80;i++)this.stars.push({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.2+0.3,a:Math.random()});}for(var j=0;j<this.stars.length;j++){ctx.globalAlpha=this.stars[j].a;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(this.stars[j].x,this.stars[j].y,this.stars[j].r,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;},
+        drawBg:function(ctx,w,h){ctx.fillStyle='#00000a';ctx.fillRect(0,0,w,h);if(!this.stars){this.stars=[];for(var i=0;i<120;i++)this.stars.push({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.2+0.3,a:Math.random()});}for(var j=0;j<this.stars.length;j++){ctx.globalAlpha=this.stars[j].a;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(this.stars[j].x,this.stars[j].y,this.stars[j].r,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;},
         drawDivider:function(ctx,w,h){ctx.setLineDash([6,10]);ctx.strokeStyle='rgba(68,136,255,0.2)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,h/2);ctx.lineTo(w,h/2);ctx.stroke();ctx.setLineDash([]);},
         drawPaddle:function(ctx,x,y,w,h,side){var c=side==='p1'?'#4488ff':'#aa44ff';ctx.shadowColor=c;ctx.shadowBlur=20;ctx.fillStyle=c;ctx.fillRect(x,y,w,h);ctx.shadowBlur=0;},
         drawBall:function(ctx,x,y,r){ctx.shadowColor='#4488ff';ctx.shadowBlur=32;var g=ctx.createRadialGradient(x-r*0.3,y-r*0.3,0,x,y,r);g.addColorStop(0,'#fff');g.addColorStop(0.5,'#4488ff');g.addColorStop(1,'#001133');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
@@ -78,7 +76,7 @@ var AD_DURATION_MS   = 2 * 60 * 60 * 1000;
 
 
 // ════════════════════════════════════════════════════════════
-// 2. ESTADO GLOBAL
+// 2. ESTADO
 // ════════════════════════════════════════════════════════════
 
 var state = {
@@ -158,15 +156,6 @@ function formatTime(ms) {
 }
 
 function selectSkin(id) {
-    /*
-     * BLOQUEIO REAL DA SKIN PREMIUM:
-     * Verificamos isSkinUnlocked() que checa:
-     *   1. Se é gratuita (free:true)
-     *   2. Se está no localStorage com timestamp válido
-     * Se nenhuma das duas, abre o anúncio.
-     * O usuário NÃO consegue burlar isso pelo frontend
-     * porque a verificação acontece toda vez que tenta usar.
-     */
     if (isSkinUnlocked(id)) {
         state.skin = id;
         applySkinVars(id);
@@ -234,20 +223,6 @@ function renderSkinGrid() {
     }
 }
 
-// ── Anúncio ──────────────────────────────────────────────────
-/*
- * SISTEMA DE BLOQUEIO DO ANÚNCIO:
- *
- * Usamos TRÊS camadas de proteção:
- *
- * 1. CSS: pointer-events:none — impossível clicar no botão
- * 2. CSS: opacity:0 — botão invisível
- * 3. Flag adFinished: mesmo que as camadas CSS falhem,
- *    finishAd() checa a flag antes de desbloquear
- *
- * O timer no setInterval decrementa a cada 1 segundo.
- * Só quando chega a 0 as três proteções são removidas.
- */
 var adInterval = null;
 var adFinished = false;
 
@@ -276,7 +251,6 @@ function startAd() {
 }
 
 function finishAd() {
-    // Proteção tripla — ignora se o timer não acabou
     if (!adFinished) return;
     if (!state.pendingSkin) return;
     if (!SKINS[state.pendingSkin]) return;
@@ -320,21 +294,8 @@ function selectDifficulty(diff) {
 
 
 // ════════════════════════════════════════════════════════════
-// 6. CONTROLES — TOQUE POR ZONA (METADE DA TELA INTEIRA)
+// 6. CONTROLES
 // ════════════════════════════════════════════════════════════
-
-/*
- * COMO AS ZONAS FUNCIONAM AGORA:
- *
- * #zone-p1 = position:fixed, top:50%, bottom:0 → metade INFERIOR da tela
- * #zone-p2 = position:fixed, top:0, bottom:50% → metade SUPERIOR da tela
- *
- * O canvas fica sobreposto no meio com pointer-events:none
- * para não interceptar os toques.
- *
- * Cada zona rastreia seu próprio touch.identifier.
- * Dois dedos em zonas diferentes funcionam totalmente independente.
- */
 
 var touchIds = { p1: null, p2: null };
 
@@ -347,20 +308,18 @@ function setupControls() {
         var rect   = canvas.getBoundingClientRect();
         var scaleX = state.cw / rect.width;
         var x = (touch.clientX - rect.left) * scaleX;
-        // Clamp dentro dos limites da raquete
         var half = state.paddleW / 2;
         return Math.max(half, Math.min(state.cw - half, x));
     }
 
-    // ── J1 — zona inferior ────────────────────────────────
     zoneP1.addEventListener('touchstart', function(e) {
         e.preventDefault();
         if (!state.running || state.paused) return;
-        var touches = e.changedTouches;
-        for (var i = 0; i < touches.length; i++) {
+        var t = e.changedTouches;
+        for (var i=0; i<t.length; i++) {
             if (touchIds.p1 === null) {
-                touchIds.p1 = touches[i].identifier;
-                state.p1.x  = getCanvasX(touches[i]);
+                touchIds.p1 = t[i].identifier;
+                state.p1.x  = getCanvasX(t[i]);
                 break;
             }
         }
@@ -369,10 +328,10 @@ function setupControls() {
     zoneP1.addEventListener('touchmove', function(e) {
         e.preventDefault();
         if (!state.running || state.paused) return;
-        var touches = e.changedTouches;
-        for (var i = 0; i < touches.length; i++) {
-            if (touches[i].identifier === touchIds.p1) {
-                state.p1.x = getCanvasX(touches[i]);
+        var t = e.changedTouches;
+        for (var i=0; i<t.length; i++) {
+            if (t[i].identifier === touchIds.p1) {
+                state.p1.x = getCanvasX(t[i]);
                 break;
             }
         }
@@ -380,29 +339,21 @@ function setupControls() {
 
     zoneP1.addEventListener('touchend', function(e) {
         e.preventDefault();
-        var touches = e.changedTouches;
-        for (var i = 0; i < touches.length; i++) {
-            if (touches[i].identifier === touchIds.p1) {
-                touchIds.p1 = null;
-                break;
-            }
-        }
+        var t = e.changedTouches;
+        for (var i=0; i<t.length; i++) if (t[i].identifier === touchIds.p1) { touchIds.p1=null; break; }
     }, { passive: false });
 
-    zoneP1.addEventListener('touchcancel', function(e) {
-        touchIds.p1 = null;
-    }, { passive: false });
+    zoneP1.addEventListener('touchcancel', function(){ touchIds.p1=null; }, { passive: false });
 
-    // ── J2 — zona superior ────────────────────────────────
     zoneP2.addEventListener('touchstart', function(e) {
         e.preventDefault();
         if (!state.running || state.paused) return;
         if (state.mode !== '2p') return;
-        var touches = e.changedTouches;
-        for (var i = 0; i < touches.length; i++) {
+        var t = e.changedTouches;
+        for (var i=0; i<t.length; i++) {
             if (touchIds.p2 === null) {
-                touchIds.p2 = touches[i].identifier;
-                state.p2.x  = getCanvasX(touches[i]);
+                touchIds.p2 = t[i].identifier;
+                state.p2.x  = getCanvasX(t[i]);
                 break;
             }
         }
@@ -412,10 +363,10 @@ function setupControls() {
         e.preventDefault();
         if (!state.running || state.paused) return;
         if (state.mode !== '2p') return;
-        var touches = e.changedTouches;
-        for (var i = 0; i < touches.length; i++) {
-            if (touches[i].identifier === touchIds.p2) {
-                state.p2.x = getCanvasX(touches[i]);
+        var t = e.changedTouches;
+        for (var i=0; i<t.length; i++) {
+            if (t[i].identifier === touchIds.p2) {
+                state.p2.x = getCanvasX(t[i]);
                 break;
             }
         }
@@ -423,20 +374,12 @@ function setupControls() {
 
     zoneP2.addEventListener('touchend', function(e) {
         e.preventDefault();
-        var touches = e.changedTouches;
-        for (var i = 0; i < touches.length; i++) {
-            if (touches[i].identifier === touchIds.p2) {
-                touchIds.p2 = null;
-                break;
-            }
-        }
+        var t = e.changedTouches;
+        for (var i=0; i<t.length; i++) if (t[i].identifier === touchIds.p2) { touchIds.p2=null; break; }
     }, { passive: false });
 
-    zoneP2.addEventListener('touchcancel', function(e) {
-        touchIds.p2 = null;
-    }, { passive: false });
+    zoneP2.addEventListener('touchcancel', function(){ touchIds.p2=null; }, { passive: false });
 
-    // Teclado
     document.addEventListener('keydown', function(e){ state._keysDown[e.key]=true; });
     document.addEventListener('keyup',   function(e){ state._keysDown[e.key]=false; });
 }
@@ -458,18 +401,18 @@ function handleKeyboard() {
 // 7. FISICA
 // ════════════════════════════════════════════════════════════
 
-function resetBall(scoredSide) {
+function resetBall(side) {
     state.ball.x = state.cw / 2;
     state.ball.y = state.ch / 2;
-    var speed = state.cw * 0.007;
+    var speed = Math.min(state.cw, state.ch) * 0.008;
     var angle = (Math.random()*50-25) * (Math.PI/180);
-    var dir   = scoredSide === 'p1' ? -1 : 1;
+    var dir   = side==='p1' ? -1 : 1;
     state.ball.vx = Math.sin(angle) * speed;
     state.ball.vy = Math.cos(angle) * speed * dir;
 }
 
 function moveAI() {
-    var aiSpeed = state.cw * 0.007 * AI_SPEED[state.difficulty];
+    var aiSpeed = Math.min(state.cw, state.ch) * 0.008 * AI_SPEED[state.difficulty];
     var diff    = state.ball.x - state.p2.x;
     var half    = state.paddleW / 2;
     if (Math.abs(diff) > 8) state.p2.x += Math.sign(diff) * Math.min(Math.abs(diff), aiSpeed);
@@ -478,6 +421,8 @@ function moveAI() {
 
 function movePhysics() {
     var ball=state.ball, r=state.ballR, pw=state.paddleW, ph=state.paddleH;
+    var baseSpeed = Math.min(state.cw, state.ch) * 0.008;
+    var margin = state.fieldMargin; // distancia das raquetes ate a borda
 
     ball.x += ball.vx;
     ball.y += ball.vy;
@@ -485,20 +430,21 @@ function movePhysics() {
     if (ball.x-r < 0)        { ball.x=r;           ball.vx= Math.abs(ball.vx); }
     if (ball.x+r > state.cw) { ball.x=state.cw-r;  ball.vx=-Math.abs(ball.vx); }
 
-    var p1Y = state.ch - ph;
-    var p2Y = 0;
+    // Raquetes ficam afastadas das bordas pela margem
+    var p1Y = state.ch - ph - margin; // P1 (baixo) com espaco
+    var p2Y = margin;                  // P2 (topo) com espaco
 
     if (ball.vy>0 && ball.y+r>=p1Y && ball.x>=state.p1.x-pw/2 && ball.x<=state.p1.x+pw/2) {
         ball.y  = p1Y-r;
         ball.vy = -Math.abs(ball.vy)*1.04;
-        ball.vx = ((ball.x-state.p1.x)/(pw/2))*state.cw*0.007;
+        ball.vx = ((ball.x-state.p1.x)/(pw/2))*baseSpeed;
         spawnParticles(ball.x, ball.y);
     }
 
     if (ball.vy<0 && ball.y-r<=p2Y+ph && ball.x>=state.p2.x-pw/2 && ball.x<=state.p2.x+pw/2) {
         ball.y  = p2Y+ph+r;
         ball.vy = Math.abs(ball.vy)*1.04;
-        ball.vx = ((ball.x-state.p2.x)/(pw/2))*state.cw*0.007;
+        ball.vx = ((ball.x-state.p2.x)/(pw/2))*baseSpeed;
         spawnParticles(ball.x, ball.y);
     }
 
@@ -572,11 +518,12 @@ function draw() {
     var ctx    = canvas.getContext('2d');
     var skin   = SKINS[state.skin];
     var pw=state.paddleW, ph=state.paddleH;
+    var margin = state.fieldMargin;
 
     skin.drawBg(ctx, state.cw, state.ch);
     skin.drawDivider(ctx, state.cw, state.ch);
-    skin.drawPaddle(ctx, state.p1.x-pw/2, state.ch-ph, pw, ph, 'p1');
-    skin.drawPaddle(ctx, state.p2.x-pw/2, 0,           pw, ph, 'p2');
+    skin.drawPaddle(ctx, state.p1.x-pw/2, state.ch-ph-margin, pw, ph, 'p1');
+    skin.drawPaddle(ctx, state.p2.x-pw/2, margin,             pw, ph, 'p2');
     skin.drawBall(ctx, state.ball.x, state.ball.y, state.ballR);
 }
 
@@ -596,38 +543,34 @@ function loop() {
 
 
 // ════════════════════════════════════════════════════════════
-// 11. INICIAR JOGO
+// 11. INICIAR JOGO — CANVAS FULLSCREEN
 // ════════════════════════════════════════════════════════════
 
 function startGame() {
     var canvas = document.getElementById('gameCanvas');
 
     /*
-     * O canvas ocupa a LARGURA TOTAL da tela.
-     * A altura é proporcional: canvas = 30% da altura da tela.
-     * As zonas de toque ocupam 35% cada (total 70% + 30% do canvas = 100%).
+     * CANVAS OCUPA A TELA INTEIRA agora.
+     * As zonas de toque ficam SOBREPOSTAS no canvas
+     * (com z-index maior).
      *
-     * Assim o canvas fica centralizado e as zonas ocupam
-     * metade da tela inteira cada uma.
+     * O canvas tem pointer-events:none no CSS, então
+     * os toques passam direto para as zonas de toque.
      */
     var W = window.innerWidth;
-    var H = Math.round(W * 0.55); // proporção do campo
+    var H = window.innerHeight;
 
     canvas.width  = W;
     canvas.height = H;
-
-    // Posiciona o canvas-wrap exatamente no centro
-    var wrap = document.getElementById('canvas-wrap');
-    wrap.style.width  = W + 'px';
-    wrap.style.height = H + 'px';
-    wrap.style.marginLeft = '-' + (W/2) + 'px';
-    wrap.style.marginTop  = '-' + (H/2) + 'px';
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
 
     state.cw      = W;
     state.ch      = H;
-    state.paddleW = W * 0.38;
-    state.paddleH = Math.max(6, H * 0.04);
-    state.ballR   = Math.max(5, W * 0.022);
+    state.paddleW = W * 0.30;
+    state.paddleH = Math.max(8, H * 0.018);
+    state.ballR   = Math.max(6, Math.min(W,H) * 0.018);
+    state.fieldMargin = H * 0.08; // margem das raquetes em relacao a borda (8% da altura)
 
     state.p1.score = 0;
     state.p2.score = 0;
@@ -636,6 +579,9 @@ function startGame() {
 
     touchIds.p1 = null;
     touchIds.p2 = null;
+
+    // Reseta estrelas da skin galaxy se for o caso
+    if (SKINS.galaxy.stars) SKINS.galaxy.stars = null;
 
     updateScore();
     applySkinVars(state.skin);
@@ -646,7 +592,6 @@ function startGame() {
 
     showScreen('screen-game');
 
-    // Hints brevemente
     var h1 = document.getElementById('hint-p1');
     var h2 = document.getElementById('hint-p2');
     h1.style.opacity = '0.5';
