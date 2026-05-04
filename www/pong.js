@@ -386,7 +386,7 @@ function setupControls() {
 
 function handleKeyboard() {
     if (!state.running || state.paused) return;
-    var speed = state.cw * 0.02;
+    var speed = state.cw * 0.015;
     var half  = state.paddleW / 2;
     if (state._keysDown['a']||state._keysDown['A']) state.p1.x=Math.max(half,state.p1.x-speed);
     if (state._keysDown['d']||state._keysDown['D']) state.p1.x=Math.min(state.cw-half,state.p1.x+speed);
@@ -560,14 +560,17 @@ function startGame() {
     var W = window.innerWidth;
     var H = window.innerHeight;
 
-    canvas.width  = W;
+    // Em landscape (desktop), cria área portrait centralizada
+    var gameW = (W > H) ? Math.min(W, Math.floor(H * 0.56)) : W;
+
+    canvas.width  = gameW;
     canvas.height = H;
-    canvas.style.width  = W + 'px';
+    canvas.style.width  = gameW + 'px';
     canvas.style.height = H + 'px';
 
-    state.cw      = W;
+    state.cw      = gameW;
     state.ch      = H;
-    state.paddleW = W * 0.30;
+    state.paddleW = gameW * 0.30;
     state.paddleH = Math.max(8, H * 0.018);
     state.ballR   = Math.max(6, Math.min(W,H) * 0.018);
     state.fieldMargin = H * 0.08; // margem das raquetes em relacao a borda (8% da altura)
