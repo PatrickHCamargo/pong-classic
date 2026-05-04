@@ -3,6 +3,10 @@ name: Build APK
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -34,8 +38,39 @@ jobs:
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: pong-classic-release
           path: android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Pong Classic ${{ github.ref_name }}
+          files: android/app/build/outputs/apk/release/app-release.apk
+          body: |
+            ## 🏓 Pong Classic ${{ github.ref_name }}
+
+            O clássico jogo Pong reinventado para Android, com skins visuais, IA adaptativa e modo multiplayer local.
+
+            ### ✨ O que tem nessa versão
+
+            - **7 skins visuais** — Classic, Neon, Retro, Cyber, Fire/Ice, Galaxy, Minimal
+            - **Modo vs CPU** com 3 dificuldades: Fácil, Médio e Difícil
+            - **Modo 2 jogadores** local na mesma tela
+            - **Sistema de pontuação** até 5 pontos
+            - **Efeitos de partículas** nos rebotes
+            - **Controles touch** otimizados para mobile
+
+            ### 🌐 Versão Web
+
+            Jogue direto no browser em:
+            **https://katsuhiro22.github.io/pong-classic**
+
+            ### 📲 Como instalar o APK
+
+            1. Baixe o arquivo `app-release.apk` abaixo
+            2. No Android, vá em **Configurações → Segurança → Fontes desconhecidas** e habilite
+            3. Abra o APK baixado e instale
