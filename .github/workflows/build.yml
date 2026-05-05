@@ -57,12 +57,14 @@ jobs:
 
             ### ✨ O que tem nessa versão
 
+            - **Música de fundo** chiptune em loop (Juhani Junkala — CC0)
+            - **Efeitos sonoros** — rebote, ponto marcado e ponto sofrido
+            - **Controles de volume** de música e efeitos na tela de pausa
+            - **Botão INICIAR** (vs CPU) e **botões PRONTO** (2 jogadores) antes de cada partida
+            - **Bola centralizada** no campo ao aguardar início
             - **7 skins visuais** — Classic, Neon, Retro, Cyber, Fire/Ice, Galaxy, Minimal
             - **Modo vs CPU** com 3 dificuldades: Fácil, Médio e Difícil
             - **Modo 2 jogadores** local na mesma tela
-            - **Sistema de pontuação** até 5 pontos
-            - **Efeitos de partículas** nos rebotes
-            - **Controles touch** otimizados para mobile
 
             ### 🌐 Versão Web
 
