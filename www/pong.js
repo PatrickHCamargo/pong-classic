@@ -105,6 +105,7 @@ var sfxVol   = 1.0;
 var musicVol = 0.5;
 
 function loadSounds() {
+    if (sounds._loaded) return;
     ['hitHurt', 'powerUp', 'explosion'].forEach(function(name) {
         var a = new Audio('sounds/' + name + '.wav');
         a.load();
@@ -113,6 +114,7 @@ function loadSounds() {
     bgMusic = new Audio('sounds/bg.wav');
     bgMusic.loop   = true;
     bgMusic.volume = musicVol;
+    sounds._loaded = true;
 }
 
 function playSound(name) {
