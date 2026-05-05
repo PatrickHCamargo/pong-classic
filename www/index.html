@@ -345,6 +345,61 @@
             transform: translateY(0);
         }
 
+        /* ── Overlays de início ── */
+        #ready-cpu {
+            position: fixed; inset: 0; z-index: 12;
+            display: none; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .ready-tap {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(12px, 3vw, 15px);
+            letter-spacing: 5px; color: var(--subtext);
+            animation: blink 1.3s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:0.25} 50%{opacity:1} }
+
+        #ready-p2, #ready-p1 {
+            position: fixed; left:0; right:0; height:50%;
+            z-index: 12; display: none;
+            align-items: center; justify-content: center;
+        }
+        #ready-p2 { top: 0; transform: rotate(180deg); }
+        #ready-p1 { bottom: 0; }
+
+        .btn-ready {
+            padding: 14px 44px;
+            border: 2px solid var(--accent);
+            background: transparent; color: var(--accent);
+            font-family: 'Orbitron', monospace;
+            font-size: 14px; letter-spacing: 4px;
+            cursor: pointer; border-radius: 10px;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent; outline: none;
+            box-shadow: 0 0 14px var(--glow);
+        }
+        .btn-ready.done {
+            background: var(--accent); color: #000;
+        }
+
+        /* ── Volume (tela de pausa) ── */
+        .vol-section { width: 100%; max-width: 280px; }
+        .vol-row {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 10px;
+        }
+        .vol-label { font-size: 9px; letter-spacing: 3px; color: var(--subtext); width: 60px; }
+        .vol-slider {
+            flex: 1; -webkit-appearance: none; appearance: none;
+            height: 3px; border-radius: 2px;
+            background: var(--btn-border); outline: none; cursor: pointer;
+        }
+        .vol-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 14px; height: 14px;
+            border-radius: 50%; background: var(--accent);
+            box-shadow: 0 0 6px var(--glow);
+        }
+
         /* ── Partículas ── */
         #particles { position: fixed; inset: 0; pointer-events: none; z-index: 8; }
         .particle {
@@ -418,11 +473,36 @@
 
     <!-- Botão pausa -->
     <button id="btn-pause" onclick="togglePause()">II</button>
+
+    <!-- Overlay VS CPU: toque para iniciar -->
+    <div id="ready-cpu">
+        <span class="ready-tap">TOQUE PARA INICIAR</span>
+    </div>
+
+    <!-- Overlays 2P: botões PRONTO -->
+    <div id="ready-p2">
+        <button class="btn-ready" id="btn-ready-p2" onclick="setReady('p2')">PRONTO</button>
+    </div>
+    <div id="ready-p1">
+        <button class="btn-ready" id="btn-ready-p1" onclick="setReady('p1')">PRONTO</button>
+    </div>
 </div>
 
 <!-- PAUSA -->
 <div class="screen" id="screen-pause">
     <div class="pause-title">PAUSA</div>
+    <div class="vol-section">
+        <div class="vol-row">
+            <span class="vol-label">MÚSICA</span>
+            <input type="range" class="vol-slider" min="0" max="1" step="0.05" value="0.5"
+                   oninput="setMusicVol(+this.value)">
+        </div>
+        <div class="vol-row">
+            <span class="vol-label">EFEITOS</span>
+            <input type="range" class="vol-slider" min="0" max="1" step="0.05" value="1"
+                   oninput="setSfxVol(+this.value)">
+        </div>
+    </div>
     <button class="btn-action" onclick="togglePause()">CONTINUAR</button>
     <button class="btn-secondary" onclick="goToMenu()">MENU</button>
 </div>

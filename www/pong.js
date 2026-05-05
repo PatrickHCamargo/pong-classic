@@ -81,7 +81,8 @@ var AD_DURATION_MS   = 2 * 60 * 60 * 1000;
 
 var state = {
     mode:'cpu', difficulty:'easy', skin:'classic',
-    running:false, paused:false,
+    running:false, paused:false, waitingStart:false,
+    playersReady:{p1:false, p2:false},
     ball:{x:0,y:0,vx:0,vy:0},
     p1:{x:0,score:0},
     p2:{x:0,score:0},
@@ -95,10 +96,13 @@ var AI_SPEED = { easy:0.35, medium:0.60, hard:0.88 };
 
 
 // ════════════════════════════════════════════════════════════
-// SOM
+// SOM + MÚSICA
 // ════════════════════════════════════════════════════════════
 
 var sounds = {};
+var bgMusic = null;
+var sfxVol   = 1.0;
+var musicVol = 0.5;
 
 function loadSounds() {
     ['hitHurt', 'powerUp', 'explosion'].forEach(function(name) {
@@ -106,13 +110,38 @@ function loadSounds() {
         a.load();
         sounds[name] = a;
     });
+    bgMusic = new Audio('sounds/bg.wav');
+    bgMusic.loop   = true;
+    bgMusic.volume = musicVol;
 }
 
 function playSound(name) {
     var s = sounds[name];
     if (!s) return;
     s.currentTime = 0;
+    s.volume = sfxVol;
     s.play().catch(function(){});
+}
+
+function startMusic() {
+    if (!bgMusic) return;
+    bgMusic.volume = musicVol;
+    bgMusic.play().catch(function(){});
+}
+
+function stopMusic() {
+    if (!bgMusic) return;
+    bgMusic.pause();
+    bgMusic.currentTime = 0;
+}
+
+function setMusicVol(v) {
+    musicVol = v;
+    if (bgMusic) bgMusic.volume = v;
+}
+
+function setSfxVol(v) {
+    sfxVol = v;
 }
 
 
@@ -126,18 +155,23 @@ function showScreen(id) {
 }
 
 function goToMenu() {
-    state.running = false;
-    state.paused  = false;
+    state.running      = false;
+    state.paused       = false;
+    state.waitingStart = false;
+    stopMusic();
+    hideReadyOverlays();
     showScreen('screen-menu');
     renderSkinGrid();
 }
 
 function togglePause() {
-    if (!state.running) return;
+    if (!state.running || state.waitingStart) return;
     state.paused = !state.paused;
     if (state.paused) {
+        if (bgMusic) bgMusic.pause();
         showScreen('screen-pause');
     } else {
+        if (bgMusic) bgMusic.play().catch(function(){});
         showScreen('screen-game');
         requestAnimationFrame(loop);
     }
@@ -560,9 +594,11 @@ function draw() {
 
 function loop() {
     if (!state.running || state.paused) return;
-    handleKeyboard();
-    if (state.mode==='cpu') moveAI();
-    movePhysics();
+    if (!state.waitingStart) {
+        handleKeyboard();
+        if (state.mode==='cpu') moveAI();
+        movePhysics();
+    }
     draw();
     requestAnimationFrame(loop);
 }
@@ -603,37 +639,80 @@ function startGame() {
 
     state.p1.score = 0;
     state.p2.score = 0;
-    state.p1.x = W / 2;
-    state.p2.x = W / 2;
+    state.p1.x = gameW / 2;
+    state.p2.x = gameW / 2;
 
     touchIds.p1 = null;
     touchIds.p2 = null;
 
-    // Reseta estrelas da skin galaxy se for o caso
     if (SKINS.galaxy.stars) SKINS.galaxy.stars = null;
 
     loadSounds();
+    startMusic();
     updateScore();
     applySkinVars(state.skin);
-    resetBall('p2');
 
-    state.running = true;
-    state.paused  = false;
+    // Bola centralizada, parada, aguardando início
+    state.ball.x  = gameW / 2;
+    state.ball.y  = H / 2;
+    state.ball.vx = 0;
+    state.ball.vy = 0;
+
+    state.running      = true;
+    state.paused       = false;
+    state.waitingStart = true;
+    state.playersReady = {p1:false, p2:false};
 
     showScreen('screen-game');
-
-    var h1 = document.getElementById('hint-p1');
-    var h2 = document.getElementById('hint-p2');
-    h1.style.opacity = '0.5';
-    h2.style.opacity = state.mode==='2p' ? '0.5' : '0';
-    setTimeout(function(){ h1.style.opacity='0'; h2.style.opacity='0'; }, 2500);
+    showReadyOverlay();
 
     requestAnimationFrame(loop);
 }
 
 
 // ════════════════════════════════════════════════════════════
-// 12. INIT
+// 12. PRONTO / INÍCIO
+// ════════════════════════════════════════════════════════════
+
+function showReadyOverlay() {
+    if (state.mode === 'cpu') {
+        var el = document.getElementById('ready-cpu');
+        el.style.display = 'flex';
+        el.onclick = function() { startBall(); };
+    } else {
+        document.getElementById('ready-p1').style.display = 'flex';
+        document.getElementById('ready-p2').style.display = 'flex';
+        var b1 = document.getElementById('btn-ready-p1');
+        var b2 = document.getElementById('btn-ready-p2');
+        b1.textContent = 'PRONTO';  b1.classList.remove('done');
+        b2.textContent = 'PRONTO';  b2.classList.remove('done');
+    }
+}
+
+function hideReadyOverlays() {
+    document.getElementById('ready-cpu').style.display = 'none';
+    document.getElementById('ready-p1').style.display  = 'none';
+    document.getElementById('ready-p2').style.display  = 'none';
+}
+
+function setReady(player) {
+    if (!state.waitingStart) return;
+    state.playersReady[player] = true;
+    var btn = document.getElementById('btn-ready-' + player);
+    btn.textContent = 'PRONTO ✓';
+    btn.classList.add('done');
+    if (state.playersReady.p1 && state.playersReady.p2) startBall();
+}
+
+function startBall() {
+    state.waitingStart = false;
+    hideReadyOverlays();
+    resetBall('p2');
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 13. INIT
 // ════════════════════════════════════════════════════════════
 
 function init() {
