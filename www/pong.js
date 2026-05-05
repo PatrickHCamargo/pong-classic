@@ -95,6 +95,28 @@ var AI_SPEED = { easy:0.35, medium:0.60, hard:0.88 };
 
 
 // ════════════════════════════════════════════════════════════
+// SOM
+// ════════════════════════════════════════════════════════════
+
+var sounds = {};
+
+function loadSounds() {
+    ['hitHurt', 'powerUp', 'explosion'].forEach(function(name) {
+        var a = new Audio('sounds/' + name + '.wav');
+        a.load();
+        sounds[name] = a;
+    });
+}
+
+function playSound(name) {
+    var s = sounds[name];
+    if (!s) return;
+    s.currentTime = 0;
+    s.play().catch(function(){});
+}
+
+
+// ════════════════════════════════════════════════════════════
 // 3. NAVEGACAO
 // ════════════════════════════════════════════════════════════
 
@@ -439,6 +461,7 @@ function movePhysics() {
         ball.vy = -Math.abs(ball.vy)*1.04;
         ball.vx = ((ball.x-state.p1.x)/(pw/2))*baseSpeed;
         spawnParticles(ball.x, ball.y);
+        playSound('hitHurt');
     }
 
     if (ball.vy<0 && ball.y-r<=p2Y+ph && ball.x>=state.p2.x-pw/2 && ball.x<=state.p2.x+pw/2) {
@@ -446,15 +469,18 @@ function movePhysics() {
         ball.vy = Math.abs(ball.vy)*1.04;
         ball.vx = ((ball.x-state.p2.x)/(pw/2))*baseSpeed;
         spawnParticles(ball.x, ball.y);
+        playSound('hitHurt');
     }
 
     if (ball.y-r < -20) {
         state.p1.score++;
+        playSound('powerUp');
         updateScore(); checkWinner();
         if (state.running) resetBall('p2');
     }
     if (ball.y+r > state.ch+20) {
         state.p2.score++;
+        playSound('explosion');
         updateScore(); checkWinner();
         if (state.running) resetBall('p1');
     }
@@ -586,6 +612,7 @@ function startGame() {
     // Reseta estrelas da skin galaxy se for o caso
     if (SKINS.galaxy.stars) SKINS.galaxy.stars = null;
 
+    loadSounds();
     updateScore();
     applySkinVars(state.skin);
     resetBall('p2');
