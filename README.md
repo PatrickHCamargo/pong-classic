@@ -48,6 +48,16 @@ Funciona em qualquer celular ou computador.
 | GitHub Actions | Build e release automáticos |
 | GitHub Pages | Hospedagem da versão web |
 
+## 🤝 Contribuindo
+
+Pull requests são bem-vindos! Se tiver uma ideia de melhoria:
+
+1. Faça um **fork** do repositório
+2. Crie uma branch: `git checkout -b minha-feature`
+3. Faça suas alterações e commit: `git commit -m 'feat: minha feature'`
+4. Push na branch: `git push origin minha-feature`
+5. Abra um **Pull Request**
+
 ## 🚀 Build automático
 
 Cada push na branch `main` compila o APK release assinado automaticamente via GitHub Actions.
