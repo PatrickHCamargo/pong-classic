@@ -3,529 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#000000">
-    <title>Pong Classic</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/svg+xml" href="icon.svg">
-    <link rel="apple-touch-icon" href="icon.svg">
+    <title>Ping Pong</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        :root {
-            --bg:         #000000;
-            --accent:     #ffffff;
-            --text:       #ffffff;
-            --subtext:    #888888;
-            --glow:       rgba(255,255,255,0.3);
-            --btn-bg:     rgba(255,255,255,0.06);
-            --btn-border: rgba(255,255,255,0.15);
-        }
-
-        html, body {
-            width: 100%; height: 100%;
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Share Tech Mono', 'Courier New', monospace;
+        body {
+            background: #111;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100dvh;
             overflow: hidden;
+            font-family: 'Courier New', monospace;
             touch-action: none;
             user-select: none;
-            transition: background 0.4s;
         }
 
-        /* ── Telas ── */
-        .screen {
-            position: fixed; inset: 0;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            padding: 20px; gap: 18px;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        .screen.active { opacity: 1; pointer-events: all; }
-
-        /* ── Menu ── */
-        .game-title {
-            font-family: 'Orbitron', 'Courier New', monospace;
-            font-size: clamp(42px, 14vw, 72px);
-            font-weight: 900; letter-spacing: 8px;
-            color: var(--accent);
-            text-shadow: 0 0 30px var(--glow);
-            text-align: center;
-            animation: pulse 3s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%,100% { text-shadow: 0 0 20px var(--glow); }
-            50%      { text-shadow: 0 0 50px var(--glow), 0 0 80px var(--glow); }
-        }
-
-        .subtitle {
-            font-size: 11px; letter-spacing: 4px;
-            color: var(--subtext); text-transform: uppercase;
-            margin-top: -14px;
-        }
-
-        .menu-section { width: 100%; max-width: 320px; }
-
-        .section-label {
-            font-size: 9px; letter-spacing: 3px;
-            color: var(--subtext); text-transform: uppercase;
+        /* ── Placar ── */
+        #score {
+            color: #fff;
+            font-size: clamp(13px, 3vw, 18px);
             margin-bottom: 8px;
+            letter-spacing: 2px;
+            opacity: 0.75;
+            text-align: center;
         }
+        #score span { font-weight: bold; }
+        #p1score { color: #fff; }
+        #p2score { color: #f55; }
 
-        .btn-group { display: flex; gap: 8px; width: 100%; }
-
-        .btn {
-            flex: 1; padding: 12px 6px;
-            border-radius: 8px;
-            border: 1px solid var(--btn-border);
-            background: var(--btn-bg);
-            color: var(--text);
-            font-family: 'Share Tech Mono', monospace;
-            font-size: clamp(10px, 3vw, 12px);
-            letter-spacing: 1px;
-            cursor: pointer; transition: all 0.15s;
-            -webkit-tap-highlight-color: transparent;
-            outline: none; text-align: center;
-        }
-        .btn.active {
-            background: var(--accent); color: #000;
-            border-color: var(--accent);
-            box-shadow: 0 0 16px var(--glow);
-        }
-
-        .btn-action {
-            width: 100%; max-width: 320px;
-            border-radius: 12px;
-            border: 2px solid var(--accent);
-            background: transparent;
-            color: var(--accent);
-            font-family: 'Orbitron', monospace;
-            font-size: 15px; font-weight: 700;
-            letter-spacing: 3px;
-            cursor: pointer; transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-            outline: none;
-            box-shadow: 0 0 16px var(--glow);
-            height: 56px;
-            display: flex; align-items: center; justify-content: center;
-            white-space: nowrap;
-        }
-        .btn-action:active { background: var(--accent); color: #000; transform: scale(0.97); }
-
-        .btn-secondary {
-            width: 100%; max-width: 320px;
-            border-radius: 10px;
-            border: 1px solid var(--btn-border);
-            background: var(--btn-bg);
-            color: var(--subtext);
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 12px; letter-spacing: 2px;
-            cursor: pointer; transition: all 0.15s;
-            -webkit-tap-highlight-color: transparent;
-            outline: none;
-            height: 48px;
-            display: flex; align-items: center; justify-content: center;
-            white-space: nowrap;
-        }
-        .btn-secondary:active { background: var(--btn-border); color: var(--text); }
-
-        /* ── Skins ── */
-        .skins-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px; width: 100%; max-width: 320px;
-        }
-
-        .skin-card {
-            aspect-ratio: 1; border-radius: 10px;
-            border: 2px solid transparent;
-            cursor: pointer;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            gap: 4px; transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent;
-            position: relative; overflow: hidden;
-        }
-        .skin-card.active { border-color: var(--accent) !important; }
-
-        .skin-preview { width: 28px; height: 28px; border-radius: 50%; }
-
-        .skin-name {
-            font-size: 7px; letter-spacing: 0.5px;
-            text-align: center; color: var(--text); opacity: 0.8;
-        }
-        .skin-lock {
-            position: absolute; top: 3px; right: 4px;
-            font-size: 8px; color: var(--subtext);
-        }
-        .skin-timer {
-            position: absolute; bottom: 2px;
-            font-size: 7px; color: #ffcc00;
-        }
-
-        /* ══════════════════════════════════════════════════════
-           TELA DE JOGO — Canvas FULLSCREEN com zonas SOBREPOSTAS
-        ══════════════════════════════════════════════════════ */
-
-        #screen-game {
-            padding: 0; gap: 0;
-            background: var(--bg);
-        }
-
-        /* Canvas ocupa quase toda a tela */
-        #canvas-wrap {
-            position: fixed;
-            inset: 0;
+        /* ── Área de jogo: botões + canvas + botões ── */
+        #game-area {
             display: flex;
+            flex-direction: row;
             align-items: center;
-            justify-content: center;
-            pointer-events: none; /* deixa o toque passar */
+            gap: clamp(6px, 2vw, 16px);
         }
 
         canvas {
+            border: 2px solid #333;
+            background: #000;
             display: block;
-            background: var(--bg);
+            flex-shrink: 0;
         }
 
-        /*
-         * ZONAS DE TOQUE — sobrepostas ao canvas
-         * Cada zona ocupa metade da TELA (não do canvas)
-         * Ficam acima do canvas no z-index
-         */
-        #zone-p2 {
-            position: fixed;
-            top: 0; left: 0; right: 0; height: 50%;
-            z-index: 5;
+        /* ── Painéis de botões ── */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(8px, 2vw, 14px);
+            align-items: center;
         }
 
-        #zone-p1 {
-            position: fixed;
-            bottom: 0; left: 0; right: 0; height: 50%;
-            z-index: 5;
+        .ctrl-label {
+            font-size: clamp(9px, 1.8vw, 12px);
+            letter-spacing: 1px;
+            opacity: 0.45;
+            margin-bottom: 2px;
         }
+        .p1-label { color: #fff; }
+        .p2-label { color: #f55; }
 
-        /* HUD do placar — fica entre a borda e a raquete */
-        #hud-p2 {
-            position: fixed;
-            top: 2.5%; left: 50%;
-            transform: translateX(-50%) rotate(180deg);
-            z-index: 6;
-            pointer-events: none;
-            display: flex; flex-direction: column;
-            align-items: center; gap: 2px;
-        }
-        #hud-p1 {
-            position: fixed;
-            bottom: 2.5%; left: 50%;
-            transform: translateX(-50%);
-            z-index: 6;
-            pointer-events: none;
-            display: flex; flex-direction: column;
-            align-items: center; gap: 2px;
-        }
-
-        .hud-score {
-            font-family: 'Orbitron', 'Courier New', monospace;
-            font-size: clamp(28px, 9vw, 44px);
-            font-weight: 900; color: var(--accent);
-            text-shadow: 0 0 16px var(--glow); line-height: 1;
-        }
-        .hud-label { font-size: 8px; letter-spacing: 3px; color: var(--subtext); }
-
-        /* Hints */
-        .touch-hint {
-            position: fixed;
-            left: 50%;
-            font-size: 10px; letter-spacing: 3px;
-            color: var(--subtext); opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s;
-            z-index: 7;
-        }
-        #hint-p2 {
-            top: 25%; transform: translateX(-50%) rotate(180deg);
-        }
-        #hint-p1 {
-            bottom: 25%; transform: translateX(-50%);
-        }
-
-        /* Botão de pausa — fixo no centro da tela */
-        #btn-pause {
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            width: 44px; height: 44px;
+        .btn {
+            width:  clamp(44px, 9vw, 64px);
+            height: clamp(44px, 9vw, 64px);
             border-radius: 50%;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(0,0,0,0.6);
-            color: rgba(255,255,255,0.5);
-            font-size: 14px;
+            border: 2px solid;
+            background: transparent;
+            font-size: clamp(18px, 4vw, 26px);
             cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.1s, transform 0.08s;
             -webkit-tap-highlight-color: transparent;
             outline: none;
-            pointer-events: all;
         }
+        .btn:active { transform: scale(0.92); }
 
-        /* ── Pausa ── */
-        #screen-pause {
-            background: rgba(0,0,0,0.88);
-            gap: 16px; z-index: 20;
-        }
-        .pause-title {
-            font-family: 'Orbitron', monospace;
-            font-size: 28px; font-weight: 700;
-            color: var(--accent); letter-spacing: 6px;
-        }
+        /* Jogador 1 — branco */
+        .p1 { border-color: #aaa; color: #fff; }
+        .p1.active, .p1:active { background: rgba(255,255,255,0.18); }
 
-        /* ── Fim de jogo ── */
-        #screen-gameover {
-            background: rgba(0,0,0,0.92);
-            gap: 16px; z-index: 20;
-        }
-        .winner-text {
-            font-family: 'Orbitron', monospace;
-            font-size: clamp(16px, 5vw, 24px);
-            font-weight: 900; color: var(--accent);
-            letter-spacing: 2px; text-align: center;
-            text-shadow: 0 0 24px var(--glow);
-        }
-        .final-score {
-            font-family: 'Orbitron', monospace;
-            font-size: clamp(36px, 12vw, 64px);
-            font-weight: 900; color: var(--text);
-            letter-spacing: 8px;
-        }
+        /* Jogador 2 — vermelho */
+        .p2 { border-color: #c33; color: #f55; }
+        .p2.active, .p2:active { background: rgba(255,80,80,0.18); }
 
-        /* ── Anúncio ── */
-        #screen-ad {
-            background: rgba(0,0,0,0.96);
-            gap: 20px; z-index: 30;
-        }
-        .ad-box {
-            width: 100%; max-width: 280px; height: 180px;
-            border: 1px solid var(--btn-border);
-            border-radius: 12px;
-            display: flex; align-items: center;
-            justify-content: center; flex-direction: column;
+        /* ── Modo seletor ── */
+        #mode-bar {
+            display: flex;
             gap: 10px;
-            background: rgba(255,255,255,0.03);
-        }
-        .ad-icon { font-size: 40px; }
-        .ad-text { font-size: 11px; color: var(--subtext); letter-spacing: 2px; }
-        #ad-countdown {
-            font-family: 'Orbitron', monospace;
-            font-size: 36px; font-weight: 900;
-            color: var(--accent);
-        }
-
-        #btn-ad-skip {
-            width: 100%; max-width: 280px;
-            height: 52px;
-            border-radius: 10px;
-            border: 2px solid var(--accent);
-            background: var(--accent);
-            color: #000;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 13px; letter-spacing: 2px;
-            cursor: pointer; outline: none;
-            -webkit-tap-highlight-color: transparent;
-            display: flex; align-items: center; justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transform: translateY(8px);
-            transition: opacity 0.4s, transform 0.4s;
-        }
-        #btn-ad-skip.visible {
-            opacity: 1;
-            pointer-events: all;
-            transform: translateY(0);
-        }
-
-        /* ── Overlays de início ── */
-        #ready-cpu {
-            position: fixed; inset: 0; z-index: 12;
-            display: none; align-items: center; justify-content: center;
-            cursor: pointer;
-        }
-        .ready-tap {
-            font-family: 'Orbitron', monospace;
-            font-size: clamp(12px, 3vw, 15px);
-            letter-spacing: 5px; color: var(--subtext);
-            animation: blink 1.3s ease-in-out infinite;
-        }
-        @keyframes blink { 0%,100%{opacity:0.25} 50%{opacity:1} }
-
-        #ready-p2, #ready-p1 {
-            position: fixed; left:0; right:0; height:50%;
-            z-index: 12; display: none;
-            align-items: center; justify-content: center;
-        }
-        #ready-p2 { top: 0; transform: rotate(180deg); }
-        #ready-p1 { bottom: 0; }
-
-        .btn-ready {
-            padding: 14px 44px;
-            border: 2px solid var(--accent);
-            background: transparent; color: var(--accent);
-            font-family: 'Orbitron', monospace;
-            font-size: 14px; letter-spacing: 4px;
-            cursor: pointer; border-radius: 10px;
-            transition: all 0.2s;
-            -webkit-tap-highlight-color: transparent; outline: none;
-            box-shadow: 0 0 14px var(--glow);
-        }
-        .btn-ready.done {
-            background: var(--accent); color: #000;
-        }
-
-        /* ── Volume (tela de pausa) ── */
-        .vol-section { width: 100%; max-width: 280px; }
-        .vol-row {
-            display: flex; align-items: center; gap: 12px;
             margin-bottom: 10px;
         }
-        .vol-label { font-size: 9px; letter-spacing: 3px; color: var(--subtext); width: 60px; }
-        .vol-slider {
-            flex: 1; -webkit-appearance: none; appearance: none;
-            height: 3px; border-radius: 2px;
-            background: var(--btn-border); outline: none; cursor: pointer;
+        .mode-btn {
+            padding: 5px 14px;
+            border-radius: 20px;
+            border: 1px solid #444;
+            background: transparent;
+            color: #888;
+            font-family: 'Courier New', monospace;
+            font-size: clamp(10px, 2.5vw, 13px);
+            cursor: pointer;
+            transition: all 0.15s;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
         }
-        .vol-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 14px; height: 14px;
-            border-radius: 50%; background: var(--accent);
-            box-shadow: 0 0 6px var(--glow);
+        .mode-btn.active {
+            border-color: #fff;
+            color: #fff;
+            background: rgba(255,255,255,0.08);
         }
 
-        /* ── Partículas ── */
-        #particles { position: fixed; inset: 0; pointer-events: none; z-index: 8; }
-        .particle {
-            position: absolute; border-radius: 50%;
-            animation: part 0.7s ease-out forwards;
-        }
-        @keyframes part {
-            0%   { opacity: 1; transform: scale(1) translate(0,0); }
-            100% { opacity: 0; transform: scale(0) translate(var(--tx),var(--ty)); }
+        #hint {
+            color: #444;
+            font-size: clamp(9px, 2vw, 12px);
+            margin-top: 8px;
+            letter-spacing: 1px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-<div id="particles"></div>
-
-<!-- MENU -->
-<div class="screen active" id="screen-menu">
-    <div class="game-title">PONG</div>
-    <div class="subtitle">Classic</div>
-
-    <div class="menu-section">
-        <div class="section-label">Modo de jogo</div>
-        <div class="btn-group">
-            <button class="btn active" id="btn-mode-cpu" onclick="selectMode('cpu')">VS CPU</button>
-            <button class="btn"        id="btn-mode-2p"  onclick="selectMode('2p')">2 JOGADORES</button>
-        </div>
-    </div>
-
-    <div class="menu-section" id="section-difficulty">
-        <div class="section-label">Dificuldade</div>
-        <div class="btn-group">
-            <button class="btn active" id="btn-diff-easy"   onclick="selectDifficulty('easy')">FACIL</button>
-            <button class="btn"        id="btn-diff-medium" onclick="selectDifficulty('medium')">MEDIO</button>
-            <button class="btn"        id="btn-diff-hard"   onclick="selectDifficulty('hard')">DIFICIL</button>
-        </div>
-    </div>
-
-    <div class="menu-section">
-        <div class="section-label">Skin</div>
-        <div class="skins-grid" id="skins-grid"></div>
-    </div>
-
-    <button class="btn-action" onclick="startGame()">JOGAR</button>
+<!-- Seletor de modo -->
+<div id="mode-bar">
+    <button class="mode-btn active" id="btn-vs-cpu" onclick="setMode('cpu')">VS CPU</button>
+    <button class="mode-btn" id="btn-vs-p2"  onclick="setMode('2p')">2 JOGADORES</button>
 </div>
 
-<!-- JOGO -->
-<div class="screen" id="screen-game">
-    <!-- Canvas fullscreen -->
-    <div id="canvas-wrap">
-        <canvas id="gameCanvas"></canvas>
-    </div>
-
-    <!-- Zonas de toque sobrepostas -->
-    <div id="zone-p2"></div>
-    <div id="zone-p1"></div>
-
-    <!-- HUDs do placar -->
-    <div id="hud-p2">
-        <div class="hud-score" id="score-p2">0</div>
-        <div class="hud-label" id="label-p2">CPU</div>
-    </div>
-    <div id="hud-p1">
-        <div class="hud-score" id="score-p1">0</div>
-        <div class="hud-label">VOCE</div>
-    </div>
-
-    <!-- Hints -->
-    <span class="touch-hint" id="hint-p2">ARRASTE</span>
-    <span class="touch-hint" id="hint-p1">ARRASTE</span>
-
-    <!-- Botão pausa -->
-    <button id="btn-pause" onclick="togglePause()">II</button>
-
-    <!-- Overlay VS CPU: toque para iniciar -->
-    <div id="ready-cpu">
-        <span class="ready-tap">TOQUE PARA INICIAR</span>
-    </div>
-
-    <!-- Overlays 2P: botões PRONTO -->
-    <div id="ready-p2">
-        <button class="btn-ready" id="btn-ready-p2" onclick="setReady('p2')">PRONTO</button>
-    </div>
-    <div id="ready-p1">
-        <button class="btn-ready" id="btn-ready-p1" onclick="setReady('p1')">PRONTO</button>
-    </div>
+<!-- Placar -->
+<div id="score">
+    <span id="p1score">0</span>
+    <span style="opacity:0.4"> — </span>
+    <span id="p2score">0</span>
 </div>
 
-<!-- PAUSA -->
-<div class="screen" id="screen-pause">
-    <div class="pause-title">PAUSA</div>
-    <div class="vol-section">
-        <div class="vol-row">
-            <span class="vol-label">MÚSICA</span>
-            <input type="range" class="vol-slider" min="0" max="1" step="0.05" value="0.5"
-                   oninput="setMusicVol(+this.value)">
-        </div>
-        <div class="vol-row">
-            <span class="vol-label">EFEITOS</span>
-            <input type="range" class="vol-slider" min="0" max="1" step="0.05" value="1"
-                   oninput="setSfxVol(+this.value)">
-        </div>
+<!-- Jogo -->
+<div id="game-area">
+
+    <!-- Controles Jogador 1 (esquerda) -->
+    <div class="controls" id="ctrl-p1">
+        <span class="ctrl-label p1-label">J1</span>
+        <button class="btn p1" id="p1up"   >▲</button>
+        <button class="btn p1" id="p1down" >▼</button>
     </div>
-    <button class="btn-action" onclick="togglePause()">CONTINUAR</button>
-    <button class="btn-secondary" onclick="goToMenu()">MENU</button>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Controles Jogador 2 (direita) -->
+    <div class="controls" id="ctrl-p2">
+        <span class="ctrl-label p2-label">J2 / CPU</span>
+        <button class="btn p2" id="p2up"   >▲</button>
+        <button class="btn p2" id="p2down" >▼</button>
+    </div>
+
 </div>
 
-<!-- FIM DE JOGO -->
-<div class="screen" id="screen-gameover">
-    <div class="winner-text" id="winner-text">VOCE VENCEU!</div>
-    <div class="final-score" id="final-score">5 - 3</div>
-    <button class="btn-action" onclick="startGame()">JOGAR NOVAMENTE</button>
-    <button class="btn-secondary" onclick="goToMenu()">MENU</button>
-</div>
-
-<!-- ANUNCIO -->
-<div class="screen" id="screen-ad">
-    <div class="section-label">Assistindo anuncio para desbloquear</div>
-    <div class="ad-box">
-        <div class="ad-icon">📺</div>
-        <div class="ad-text">ANUNCIO</div>
-        <div id="ad-countdown">5</div>
-    </div>
-    <button id="btn-ad-skip" onclick="finishAd()">PULAR E DESBLOQUEAR</button>
-    <button class="btn-secondary" onclick="cancelAd()">CANCELAR</button>
-</div>
+<div id="hint"></div>
 
 <script src="pong.js"></script>
 </body>
